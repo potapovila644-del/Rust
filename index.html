@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Wasteland — браузерный survival prototype</title>
+<style>
+:root{--yellow:#ffc928;--panel:rgba(18,21,25,.86);--line:rgba(255,255,255,.15);--text:#f4f4f4}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;color:var(--text);font-family:Arial,Helvetica,sans-serif;touch-action:none}
+canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none}
+.top{position:absolute;left:14px;right:14px;top:14px;display:flex;justify-content:space-between;align-items:flex-start}
+.card{background:rgba(20,24,28,.82);border:1px solid var(--line);backdrop-filter:blur(7px);box-shadow:0 5px 18px #0006}
+.profile{display:flex;gap:10px;align-items:center;padding:7px 10px;width:245px}
+.avatar{width:52px;height:52px;border-radius:4px;background:linear-gradient(145deg,#555,#111);display:grid;place-items:center;font-size:26px}
+.level{font-size:11px;color:#bbb}.name{font-weight:800;font-size:15px}.xp{height:6px;background:#25282c;margin-top:6px}.xp i{display:block;width:68%;height:100%;background:#e9c33d}
+.resources{display:flex;gap:7px}.res{min-width:84px;padding:10px 12px;text-align:center;font-weight:800}.res small{display:block;color:#aaa;font-size:10px;margin-bottom:4px}
+.iconbar{display:flex;gap:8px}.ico{padding:10px 12px;font-size:24px}
+.side{position:absolute;right:18px;top:155px;display:flex;flex-direction:column;gap:10px}.side button,.main button{border:0;color:white;background:rgba(26,30,34,.78);padding:11px 15px;font-weight:800;font-size:13px;border:1px solid var(--line);pointer-events:auto}
+.side button span{display:block;font-size:10px;color:#bbb;margin-top:4px}
+.left{position:absolute;left:16px;bottom:18px;width:290px}.promo{padding:12px;margin-bottom:9px;background:linear-gradient(130deg,#251f20dd,#6c2720cc);border:1px solid #ffffff1a}.promo b{font-size:18px}.promo small{display:block;color:#ddd;margin-top:4px}
+.bottom{position:absolute;right:18px;bottom:18px;display:flex;gap:12px;pointer-events:auto}.big{min-width:260px;padding:20px 28px;border:1px solid #222;font-size:20px;font-weight:900}.yellow{background:linear-gradient(#ffd534,#f5b900);color:#111}.white{background:#f5f0e8;color:#111}
+#cross{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);opacity:.75}#cross:before,#cross:after{content:"";position:absolute;background:white}.cross:before{left:10px;top:0;width:2px;height:22px}.cross:after{left:0;top:10px;width:22px;height:2px}
+#stats{position:absolute;right:18px;bottom:112px;width:230px}.bar{height:20px;background:#222b;margin-top:4px;border:1px solid #0008}.bar i{display:block;height:100%}.hp i{background:#8fd04b}.water i{background:#4da8e8}.food i{background:#e68b39}.bar label{position:absolute;margin-left:8px;line-height:20px;font-size:12px;font-weight:bold}
+#hotbar{position:absolute;left:50%;bottom:17px;transform:translateX(-50%);display:flex;gap:4px;pointer-events:auto}.slot{width:64px;height:64px;background:#15181bcc;border:1px solid #7778;display:grid;place-items:center;position:relative}.slot.sel{outline:3px solid #4ba3ff;background:#253a4c}.slot em{position:absolute;right:5px;bottom:3px;font-size:11px;color:#ddd}.slot strong{font-size:27px}
+#touch{display:none}.stick{position:absolute;left:20px;bottom:20px;width:150px;height:150px;border-radius:50%;background:#ffffff14;border:2px solid #fff3}.knob{position:absolute;width:65px;height:65px;left:42px;top:42px;border-radius:50%;background:#ffffff2c;border:2px solid #fff5}
+.touchbtn{position:absolute;width:68px;height:68px;border-radius:50%;background:#111b;border:1px solid #fff5;color:white;font-size:24px;font-weight:bold}.t1{right:28px;bottom:35px}.t2{right:110px;bottom:80px}.t3{right:28px;bottom:120px}.t4{right:110px;bottom:165px}
+#inventory,#menu{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#0008;z-index:10}
+.panel{width:min(940px,94vw);max-height:92vh;overflow:auto;background:linear-gradient(145deg,#15191dF2,#292521EE);border:1px solid #fff2;box-shadow:0 20px 80px #000c;padding:24px}
+.panel h1{margin:0 0 14px;font-size:28px}.grid{display:grid;grid-template-columns:repeat(8,1fr);gap:7px}.invslot{aspect-ratio:1;background:#25282ccc;border:1px solid #fff1;display:grid;place-items:center;position:relative;font-size:25px}.invslot small{position:absolute;right:4px;bottom:3px;color:#ccc}.tabs{display:flex;gap:7px;margin-bottom:12px}.tabs button{background:#222;color:#ddd;border:1px solid #fff2;padding:9px 13px;font-weight:800}.close{float:right;background:#9e2c25;color:#fff;border:0;padding:8px 14px;font-weight:900}
+#craftList{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.recipe{padding:12px;background:#202428;border:1px solid #fff1;display:flex;justify-content:space-between;align-items:center}.recipe button{background:var(--yellow);border:0;padding:8px;font-weight:900}
+#toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);padding:12px 18px;background:#111d;border:1px solid #fff3;opacity:0;transition:.2s;pointer-events:none;font-weight:bold}
+@media (max-width:900px){.resources,.iconbar{display:none}.profile{width:190px}.side{top:95px;right:8px}.side button{padding:8px}.left{display:none}.bottom{bottom:90px;right:8px}.big{min-width:130px;padding:14px;font-size:14px}.grid{grid-template-columns:repeat(6,1fr)}#hotbar{bottom:8px}.slot{width:49px;height:49px}.slot strong{font-size:20px}}
+@media (pointer:coarse){#touch{display:block}.side,.bottom,#hotbar{pointer-events:auto}.desktopOnly{display:none}}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="top">
+    <div class="profile card"><div class="avatar">🪖</div><div><div class="level">УРОВЕНЬ 7</div><div class="name">ZIVERCO</div><div class="xp"><i></i></div></div></div>
+    <div class="resources"><div class="res card"><small>МЕТАЛЛ</small>2250</div><div class="res card"><small>МОНЕТЫ</small>7</div></div>
+    <div class="iconbar"><div class="ico card">✉️</div><div class="ico card">⚙️</div></div>
+  </div>
+  <div id="cross"><div class="cross"></div></div>
+  <div class="side">
+    <button onclick="openInventory()">🎒<span>ИНВЕНТАРЬ</span></button>
+    <button onclick="openCraft()">🔨<span>КРАФТ</span></button>
+    <button onclick="toggleBuild()">🧱<span>СТРОИТЬ</span></button>
+    <button onclick="newMatch()">↻<span>НОВАЯ ИГРА</span></button>
+  </div>
+  <div id="stats">
+    <div class="bar hp"><label>❤ 100</label><i style="width:100%"></i></div>
+    <div class="bar water"><label>💧 250</label><i style="width:82%"></i></div>
+    <div class="bar food"><label>🍗 500</label><i style="width:100%"></i></div>
+  </div>
+  <div id="hotbar"></div>
+  <div class="bottom">
+    <button class="big white" onclick="newMatch()">НОВЫЙ МАТЧ</button>
+    <button class="big yellow" onclick="toast('Продолжение мира загружено')">ПРОДОЛЖИТЬ</button>
+  </div>
+</div>
+
+<div id="touch">
+  <div class="stick" id="stick"><div class="knob" id="knob"></div></div>
+  <button class="touchbtn t1" id="fire">🔫</button><button class="touchbtn t2" id="jump">⬆</button>
+  <button class="touchbtn t3" id="use">⛏</button><button class="touchbtn t4" id="inv">🎒</button>
+</div>
+
+<div id="inventory"><div class="panel"><button class="close" onclick="closePanels()">✕</button><h1>ИНВЕНТАРЬ</h1><div class="tabs"><button onclick="showTab('items')">ПРЕДМЕТЫ</button><button onclick="showTab('craft')">КРАФТ</button></div><div id="invItems" class="grid"></div><div id="craftList" style="display:none"></div></div></div>
+<div id="menu"><div class="panel"><button class="close" onclick="closePanels()">✕</button><h1>ЛОББИ / СЕРВЕРЫ</h1><p>WASTELAND SURVIVAL • 50 игроков • процедурная карта</p><button class="big yellow" onclick="closePanels();newMatch()">ВОЙТИ В МИР</button></div></div>
+<div id="toast"></div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import {PointerLockControls} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/PointerLockControls.js';
+import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x91b8d5);
+scene.fog=new THREE.Fog(0x91b8d5,55,260);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.05,500);
+camera.position.set(0,3.2,12);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.prepend(renderer.domElement);
+const hemi=new THREE.HemisphereLight(0xbddcff,0x5c4d38,2.2);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffefc2,3.2);sun.position.set(-80,120,50);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
+
+// procedural terrain
+const terrainGeo=new THREE.PlaneGeometry(420,420,90,90);terrainGeo.rotateX(-Math.PI/2);
+const pos=terrainGeo.attributes.position;
+for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);pos.setY(i,Math.sin(x*.055)*2.7+Math.cos(z*.048)*2.4+Math.sin((x+z)*.018)*4.5);}
+terrainGeo.computeVertexNormals();
+const terrain=new THREE.Mesh(terrainGeo,new THREE.MeshStandardMaterial({color:0x536449,roughness:.96,metalness:0}));
+terrain.receiveShadow=true;scene.add(terrain);
+
+const mats={wood:new THREE.MeshStandardMaterial({color:0x6b4028,roughness:.9}),leaf:new THREE.MeshStandardMaterial({color:0x2e5c38,roughness:.9}),rock:new THREE.MeshStandardMaterial({color:0x777d7b,roughness:1}),metal:new THREE.MeshStandardMaterial({color:0x596169,metalness:.75,roughness:.35}),rust:new THREE.MeshStandardMaterial({color:0x87412d,metalness:.25,roughness:.7}),dark:new THREE.MeshStandardMaterial({color:0x1d2328,metalness:.7,roughness:.28}),skin:new THREE.MeshStandardMaterial({color:0xb07a55,roughness:.9})};
+const colliders=[];const nodes=[];
+function box(x,y,z,sx,sy,sz,mat,collide=true){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;scene.add(m);if(collide)colliders.push({x,z,r:Math.max(sx,sz)*.55,h:sy});return m}
+
+// Local GLB asset pack. These are lightweight original low-poly models made for this prototype,
+// so the game does not depend on a second download service and remains practical on iPad.
+const loader=new GLTFLoader();
+const assetFiles={
+  barrel:'assets/models/barrel_01.glb', crate:'assets/models/crate_01.glb', rock:'assets/models/rock_01.glb',
+  tree:'assets/models/tree_01.glb', toolbox:'assets/models/toolbox_01.glb', crowbar:'assets/models/crowbar_01.glb', pistol:'assets/models/pistol_fictional_01.glb'
+};
+const assets={};
+async function loadAsset(name,url){const gltf=await loader.loadAsync(url);const root=gltf.scene;root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});assets[name]=root;return root}
+await Promise.all(Object.entries(assetFiles).map(([name,url])=>loadAsset(name,url)));
+
+function cloneAsset(name){return assets[name].clone(true)}
+function addNodeModel(type,name,x,z,scale=1,hp=3,rot=0){
+  const g=cloneAsset(name);g.position.set(x,0,z);g.rotation.y=rot;g.scale.setScalar(scale);scene.add(g);
+  const radius=type==='tree'?1.35*scale:type==='rock'?1.25*scale:0.9*scale;
+  colliders.push({x,z,r:radius,h:type==='tree'?7*scale:2*scale});
+  nodes.push({type,x,z,obj:g,hp});
+  return g;
+}
+function tree(x,z){return addNodeModel('tree','tree',x,z,1.05,3,Math.random()*Math.PI*2)}
+function rock(x,z){return addNodeModel('rock','rock',x,z,.9+Math.random()*.35,4,Math.random()*Math.PI*2)}
+for(let i=0;i<52;i++){const a=Math.random()*Math.PI*2,r=20+Math.random()*170;tree(Math.cos(a)*r,Math.sin(a)*r)}
+for(let i=0;i<38;i++){const a=Math.random()*6.28,r=12+Math.random()*175;rock(Math.cos(a)*r,Math.sin(a)*r)}
+
+// Industrial compound with actual local 3D props.
+for(let i=0;i<7;i++){box(-28+i*5,2,-42,4.2,4,4.2,mats.rust);box(-28+i*5,4.7,-42,4.5,.5,4.5,mats.dark,false)}
+for(let i=0;i<14;i++){const x=-55+Math.random()*110,z=-20+Math.random()*85;const name=i%3===0?'toolbox':i%2===0?'crate':'barrel';const g=cloneAsset(name);g.position.set(x, name==='barrel'?.55:name==='crate'?.8:.45,z);g.rotation.y=Math.random()*Math.PI*2;g.scale.setScalar(name==='toolbox'?.8:name==='crate'?.9:1);scene.add(g);}
+
+// Fictional pistol model loaded from the local GLB pack.
+const weapon=cloneAsset('pistol');weapon.scale.setScalar(.72);weapon.position.set(.42,-.38,-.82);weapon.rotation.set(-.05,-.2,-.05);camera.add(weapon);scene.add(camera);
+
+// player physics
+const keys={};let velY=0,onGround=true,selected=0,buildMode=false;
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')openInventory();if(e.code==='KeyB')toggleBuild();if(/^Digit[1-8]$/.test(e.code)){selected=+e.code.slice(5)-1;renderHotbar()}});
+addEventListener('keyup',e=>keys[e.code]=false);
+const controls=new PointerLockControls(camera,document.body);
+renderer.domElement.addEventListener('click',()=>{if(!('ontouchstart'in window))controls.lock()});
+let touchMove={x:0,y:0};const stick=document.querySelector('#stick'),knob=document.querySelector('#knob');
+stick?.addEventListener('pointermove',e=>{if(e.buttons===0)return;const r=stick.getBoundingClientRect();let x=e.clientX-(r.left+r.width/2),y=e.clientY-(r.top+r.height/2);const d=Math.min(55,Math.hypot(x,y)),a=Math.atan2(y,x);x=Math.cos(a)*d;y=Math.sin(a)*d;knob.style.transform=`translate(${x}px,${y}px)`;touchMove={x:x/55,y:y/55}});
+stick?.addEventListener('pointerup',()=>{knob.style.transform='';touchMove={x:0,y:0}});
+document.querySelector('#fire')?.addEventListener('pointerdown',shoot);document.querySelector('#use')?.addEventListener('pointerdown',harvest);document.querySelector('#jump')?.addEventListener('pointerdown',()=>{if(onGround){velY=8;onGround=false}});document.querySelector('#inv')?.addEventListener('pointerdown',openInventory);
+
+const inventory=[
+['🪨','Камень',120],['🪵','Дерево',85],['⛓','Металл',40],['🔩','Фрагменты',25],['🔫','Пистолет',1],['💥','Патроны',24],
+['🥫','Еда',6],['💧','Вода',5],['🧱','Стена',8],['🔥','Факел',2],['🩹','Бинт',4],['⛏','Кирка',1],
+['🪓','Топор',1],['🎒','Рюкзак',1],['🔧','Инструмент',1],['🧪','Медикаменты',2]
+];
+function renderInventory(){const el=document.querySelector('#invItems');el.innerHTML='';inventory.forEach((it,i)=>{const d=document.createElement('div');d.className='invslot';d.innerHTML=`${it[0]}<small>${it[2]}</small>`;d.title=it[1];el.appendChild(d)})}
+function renderHotbar(){const el=document.querySelector('#hotbar');el.innerHTML='';inventory.slice(4,12).forEach((it,i)=>{const d=document.createElement('div');d.className='slot '+(i===selected?'sel':'');d.innerHTML=`<strong>${it[0]}</strong><em>${i+1}</em>`;el.appendChild(d)})}
+renderInventory();renderHotbar();
+
+function openInventory(){document.querySelector('#inventory').style.display='flex';renderInventory();showTab('items');}
+function openCraft(){document.querySelector('#inventory').style.display='flex';showTab('craft')}
+function closePanels(){document.querySelectorAll('#inventory,#menu').forEach(x=>x.style.display='none')}
+function showTab(t){document.querySelector('#invItems').style.display=t==='items'?'grid':'none';const c=document.querySelector('#craftList');c.style.display=t==='craft'?'grid':'none';if(t==='craft'){c.innerHTML='';[['🪓','Каменный топор',['Дерево 50','Камень 20']],['⛏','Кирка',['Дерево 40','Камень 35']],['🧱','Стена',['Дерево 100']],['🔫','Пистолет',['Фрагменты 60','Металл 30']]].forEach(r=>{const d=document.createElement('div');d.className='recipe';d.innerHTML=`<span>${r[0]} <b>${r[1]}</b><small>${r[2].join(' • ')}</small></span><button onclick="toast('Создано: ${r[1]}')">СОЗДАТЬ</button>`;c.appendChild(d)})}}
+function toast(t){const x=document.querySelector('#toast');x.textContent=t;x.style.opacity=1;clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.opacity=0,1800)}
+function toggleBuild(){buildMode=!buildMode;toast(buildMode?'Режим строительства: выберите место и нажмите ⛏':'Строительство выключено')}
+function newMatch(){closePanels();camera.position.set(0,3.2,12);toast('Новый мир создан')}
+function shoot(){if(!document.querySelector('#inventory').style.display||document.querySelector('#inventory').style.display==='none'){const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);const hits=ray.intersectObjects(scene.children,true);if(hits.length){const o=hits[0].object;const n=nodes.find(n=>n.obj===o||!!n.obj.getObjectById(o.id));if(n){n.hp--;if(n.hp<=0){scene.remove(n.obj);toast(n.type==='tree'?'+25 дерева':'+15 камня')}}}toast('Выстрел')}}}
+function harvest(){if(buildMode){const dir=new THREE.Vector3();camera.getWorldDirection(dir);const p=camera.position.clone().add(dir.multiplyScalar(4));box(Math.round(p.x/2)*2,1.5,Math.round(p.z/2)*2,3.8,3,3.8,mats.wood);toast('Построена деревянная стена');return}const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);const hits=ray.intersectObjects(scene.children,true);if(hits.length){const o=hits[0].object;const n=nodes.find(n=>n.obj===o||!!n.obj.getObjectById(o.id));if(n){n.hp--;if(n.hp<=0){scene.remove(n.obj);toast(n.type==='tree'?'+25 дерева':'+15 камня')}else toast(n.type==='tree'?'Рубим дерево':'Добываем камень')}}}
+function updatePlayer(dt){
+ let f=(keys.KeyW?1:0)-(keys.KeyS?1:0)+(-touchMove.y), r=(keys.KeyD?1:0)-(keys.KeyA?1:0)+(touchMove.x);
+ if(Math.abs(f)+Math.abs(r)>0){const v=new THREE.Vector3(r,0,-f).normalize().multiplyScalar(8*dt);camera.translateX(v.x);camera.translateZ(v.z)}
+ if((keys.Space||keys.KeyW&&keys.ShiftLeft)&&onGround){velY=8;onGround=false}
+ velY-=18*dt;camera.position.y+=velY*dt;if(camera.position.y<3.2){camera.position.y=3.2;velY=0;onGround=true}
+ camera.position.x=Math.max(-205,Math.min(205,camera.position.x));camera.position.z=Math.max(-205,Math.min(205,camera.position.z));
+}
+let last=performance.now(),time=0;
+function animate(now){requestAnimationFrame(animate);const dt=Math.min(.033,(now-last)/1000);last=now;time+=dt;updatePlayer(dt);sun.position.x=Math.cos(time*.03)*100;sun.position.z=Math.sin(time*.03)*100;sun.intensity=2.3+Math.sin(time*.03)*.7;renderer.render(scene,camera)}
+animate(performance.now());
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+window.openInventory=openInventory;window.openCraft=openCraft;window.closePanels=closePanels;window.showTab=showTab;window.toast=toast;window.toggleBuild=toggleBuild;window.newMatch=newMatch;
+</script>
+</body>
+</html>
